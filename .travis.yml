@@ -1,0 +1,18 @@
+language: scala
+dist: trusty
+sudo: false
+
+cache:
+  directories:
+    $HOME/.ivy2
+    $HOME/.sbt
+
+git:
+  depth: 10
+
+env:
+  global:
+    SBT_ARGS="-Dsbt.log.noformat=true"
+
+script:
+  - sbt $SBT_ARGS test
