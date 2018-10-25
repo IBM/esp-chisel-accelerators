@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package espTests
+package esptests
 
 import chisel3._
 import firrtl.{ir => fir}
