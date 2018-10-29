@@ -1,6 +1,6 @@
 # ESP Accelerators in Chisel
 
-[![Build Status](https://travis-ci.org/IBM/esp-chisel-accelerators.svg?branch=master)](https://travis-ci.org/IBM/esp-chisel-accelerators)
+[![Build Status](https://travis-ci.com/IBM/esp-chisel-accelerators.svg?branch=master)](https://travis-ci.org/IBM/esp-chisel-accelerators)
 
 This project provides an example Embedded Scalable Platform (ESP) Accelerator socket that can be used for writing ESP-compatible accelerators in [chisel3](https://github.com/freechipsproject/chisel3).
 
