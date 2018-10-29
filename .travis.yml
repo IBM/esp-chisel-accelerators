@@ -14,5 +14,9 @@ env:
   global:
     SBT_ARGS="-Dsbt.log.noformat=true"
 
-script:
-  - sbt $SBT_ARGS test
+jobs:
+  include:
+    - stage: test
+      script: sbt $SBT_ARGS test
+    -
+      script: sbt $SBT_ARGS run
