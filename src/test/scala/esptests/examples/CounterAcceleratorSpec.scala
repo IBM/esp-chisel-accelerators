@@ -14,29 +14,15 @@
 
 package esptests
 
-import chisel3._
-import chisel3.util.Counter
 import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
 
 import esp.Accelerator
+import esp.examples.CounterAccelerator
 
-/** An ESP accelerator that says it's done a fixed number of cycles after it's enabled
-  * @param ticks the number of cycles to count
+/** A test that the [[CounterAccelerator]] asserts it's done when it should
+  * @param dut a [[CounterAccelerator]]
   */
-class TimerAccelerator(val ticks: Int) extends Accelerator {
-  val enabled = RegInit(false.B)
-
-  val (_, fire) = Counter(enabled, ticks)
-  io.done := fire
-
-  when (io.conf.valid) { enabled := true.B  }
-  when (fire)          { enabled := false.B }
-}
-
-/** A test that the TimerAccelerator asserts it's done when it should
-  * @param dut a [[TimerAccelerator]]
-  */
-class TimerAcceleratorTester(dut: TimerAccelerator) extends PeekPokeTester(dut) {
+class CounterAcceleratorTester(dut: CounterAccelerator) extends PeekPokeTester(dut) {
   def reset(): Unit = Seq(dut.io.conf.valid,
                           dut.io.dma.readControl.ready,
                           dut.io.dma.writeControl.ready,
@@ -62,10 +48,10 @@ class TimerAcceleratorTester(dut: TimerAccelerator) extends PeekPokeTester(dut) 
 
 class AcceleratorSpec extends ChiselFlatSpec {
 
-  behavior of "A simple timer ESP Accelerator"
+  behavior of "CounterAccelerator"
 
-  it should "report it's done after 42 cycles" in {
-    Driver(() => new TimerAccelerator(42), "firrtl")(dut => new TimerAcceleratorTester(dut)) should be (true)
+  it should "assert done after 42 cycles" in {
+    Driver(() => new CounterAccelerator(42), "firrtl")(dut => new CounterAcceleratorTester(dut)) should be (true)
   }
 
 }
