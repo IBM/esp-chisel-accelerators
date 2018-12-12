@@ -19,7 +19,7 @@ import firrtl.{ir => fir}
 import org.scalatest.{FlatSpec, Matchers}
 import scala.io.Source
 import scala.util.matching.Regex
-import esp.{Accelerator, AcceleratorWrapper}
+import esp.{Accelerator, AcceleratorConfig, AcceleratorWrapper}
 
 class AcceleratorWrapperSpec extends FlatSpec with Matchers {
 
@@ -46,16 +46,26 @@ class AcceleratorWrapperSpec extends FlatSpec with Matchers {
                          tpe=fir.UIntType(fir.IntWidth(math.abs(n2z(m.group("high")) - n2z(m.group("low")) + 1)))))
   }
 
+  class FooAccelerator extends Accelerator {
+    val config = AcceleratorConfig(
+      name = "foo",
+      description = "a dummy accelerator used for unit tests",
+      memoryFootprintMiB = 0,
+      deviceId = 0
+    )
+  }
+
   behavior of "AcceleratorWrapper"
 
   it should "have the expected top-level IO when lowered to Verilog" in {
     val targetDir = "test_run_dir/AcceleratorWrapper"
 
     info("Verilog generation okay")
-    Driver.execute(Array("-X", "verilog", "--target-dir", targetDir), () => new AcceleratorWrapper(new Accelerator))
+    Driver.execute(Array("-X", "verilog", "--target-dir", targetDir),
+                   () => new AcceleratorWrapper(new FooAccelerator, "FooAccelerator", "None"))
 
-    val expectedIO: Seq[fir.Port] = collectVerilogIO(Source.fromResource("esp_acc_iface.v").getLines.toSeq)
-    val generatedIO = collectVerilogIO(Source.fromFile(s"$targetDir/AcceleratorWrapper.v").getLines.toSeq).toSet
+    val expectedIO = collectVerilogIO(Source.fromFile("src/main/resources/esp_acc_iface.v").getLines.toSeq)
+    val generatedIO = collectVerilogIO(Source.fromFile(s"$targetDir/FooAccelerator_None_Wrapper.v").getLines.toSeq).toSet
 
     for (g <- expectedIO) {
       info(s"Contains: ${g.serialize}")

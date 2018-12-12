@@ -63,7 +63,19 @@ trait AcceleratorWrapperIO { this: RawModule =>
   val dma_write_chnl_data = IO(Output(UInt(32.W)))
 }
 
-class AcceleratorWrapper(gen: => Accelerator) extends RawModule with AcceleratorWrapperIO {
+/** Wraps a given [[Accelerator]] in a predicatable top-level interface. This is intended for direct integration with
+  * the ESP acclerator socket.
+  * @param gen the accelerator to wrap
+  * @param subName the top-level "name" of the accelerator
+  * @param parameters a string, typically consiting of stringified parameters, used to disambiguate this instance of the
+  * accelerator from anoter
+  * @todo Make subName and parameters automatically inferred based on gen. This requires some merged support added to
+  * Chisel.
+  */
+class AcceleratorWrapper(gen: => Accelerator, subName: String, parameters: String) extends RawModule
+    with AcceleratorWrapperIO {
+
+  override lazy val desiredName = s"${subName}_${parameters}_Wrapper"
   val acc = withClockAndReset(clk, rst)(Module(gen))
 
   acc.io.conf.bits.length       := conf_info_len
