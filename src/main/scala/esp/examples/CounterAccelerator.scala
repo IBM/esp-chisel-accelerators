@@ -17,12 +17,33 @@ package esp.examples
 import chisel3._
 import chisel3.util.Counter
 
-import esp.Accelerator
+import esp.{Accelerator, AcceleratorConfig, AcceleratorParameter}
+
+import sys.process._
 
 /** An ESP accelerator that is done a parameterized number of clock ticks in the future
   * @param ticks the number of clock ticks until done
   */
 class CounterAccelerator(val ticks: Int) extends Accelerator {
+
+  override val config = AcceleratorConfig(
+    name = this.name,
+    description = s"Simple accelerator that reports being done $ticks cycles after being enabled",
+    memoryFootprintMiB = 0,
+    deviceId = 0xC,
+    param = Array(
+      AcceleratorParameter(
+        name = "gitHash",
+        description = Some("Git short SHA hash of the repo used to generate this accelerator"),
+        value = Some(Integer.parseInt(("git log -n1 --format=%h" !!).filter(_ >= ' '), 16))
+      ),
+      AcceleratorParameter(
+        name = "ticks",
+        description = Some("read only tick count"),
+        value = Some(ticks))
+    )
+  )
+
   val enabled = RegInit(false.B)
 
   val (_, fire) = Counter(enabled, ticks)

@@ -15,7 +15,33 @@
 package esp
 
 import chisel3._
+import chisel3.experimental.ChiselAnnotation
 import chisel3.util.{Decoupled, Valid}
+
+import firrtl.annotations.Annotation
+
+case class AcceleratorParameter(
+  name: String,
+  description: Option[String] = None,
+  value: Option[Int] = None,
+  size: Int = 32) {
+
+  val readOnly = value.isDefined
+
+  require(size >= 0, s"AccleratorParamater '$name' must be greater than 0 bits in size!")
+  require(size <= 32, s"AccleratorParamater '$name' must be less than 32 bits in size!")
+}
+
+
+case class AcceleratorConfig(
+  name: String,
+  description: String,
+  memoryFootprintMiB: Int,
+  deviceId: Int,
+  param: Array[AcceleratorParameter] = Array.empty) {
+
+  require(memoryFootprintMiB >= 0, s"AcceleratorConfig '$name' memory footprint must be greater than 0 MiB!")
+}
 
 class Configuration extends Bundle {
   val length = UInt(32.W)
@@ -40,8 +66,16 @@ class AcceleratorIO extends Bundle {
   val debug = Output(UInt(32.W))
 }
 
-class Accelerator extends Module with AcceleratorDefaults {
+abstract class Accelerator extends Module with AcceleratorDefaults { self: Accelerator =>
   lazy val io = IO(new AcceleratorIO)
+
+  def config: AcceleratorConfig
+
+  chisel3.experimental.annotate(
+    new ChiselAnnotation {
+      def toFirrtl: Annotation = EspConfigAnnotation(self.toNamed, config)
+    }
+  )
 }
 
 trait AcceleratorDefaults { this: Accelerator =>

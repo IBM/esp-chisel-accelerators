@@ -21,12 +21,13 @@ import esp.examples.CounterAccelerator
 object Generator {
 
   def main(args: Array[String]): Unit = {
-    val examples: Seq[(String, () => Accelerator)] = Seq(
-      ("CounterAccelerator42", () => new CounterAccelerator(42)) )
+    val examples: Seq[(String, String, () => Accelerator)] = Seq(
+      ("CounterAccelerator", 42.toString, () => new CounterAccelerator(42)) )
 
-    examples.map { case (name, gen) =>
-      val argsx = args ++ Array("--target-dir", s"build/$name")
-      Driver.execute(argsx, () => new AcceleratorWrapper(gen())) }
+    examples.map { case (name, parameters, gen) =>
+      val argsx = args ++ Array("--target-dir", s"build/$name/${name}_${parameters}_Wrapper",
+                                "--custom-transforms", "esp.transforms.EmitXML")
+      Driver.execute(argsx, () => new AcceleratorWrapper(gen(), name, "42")) }
   }
 
 }
