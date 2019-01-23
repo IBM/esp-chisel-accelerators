@@ -1,4 +1,4 @@
-// Copyright 2018 IBM
+// Copyright 2018-2019 IBM
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import com.thoughtworks.xstream.io.{HierarchicalStreamReader, HierarchicalStream
 import com.thoughtworks.xstream.io.xml.{DomDriver, XmlFriendlyNameCoder}
 import com.thoughtworks.xstream.converters.{Converter, MarshallingContext, UnmarshallingContext}
 
-class AcceleratorParameterConverter extends Converter {
+class ParameterConverter extends Converter {
 
   override def marshal(source: scala.Any, writer: HierarchicalStreamWriter, context: MarshallingContext): Unit = {
-    val c = source.asInstanceOf[AcceleratorParameter]
+    val c = source.asInstanceOf[Parameter]
     writer.addAttribute("name", c.name)
     if (c.description.isDefined) { writer.addAttribute("desc", c.description.get) }
     if (c.value.isDefined) { writer.addAttribute("value", c.value.get.toString) }
@@ -34,7 +34,7 @@ class AcceleratorParameterConverter extends Converter {
     ??? /* This is currently unimplemented */
   }
 
-  override def canConvert(c: Class[_]): Boolean = c.isAssignableFrom(classOf[AcceleratorParameter])
+  override def canConvert(c: Class[_]): Boolean = c.isAssignableFrom(classOf[Parameter])
 
 }
 
@@ -43,7 +43,7 @@ class AcceleratorParameterConverter extends Converter {
   * @param config the ESP accelerator configuration
   * @param dir either a (left) absolute path or (right) a path relative to a [[TargetDirAnnotation]]
   */
-case class EspConfigAnnotation(target: ModuleName, config: AcceleratorConfig, dir: Either[String, String] = Right(".."))
+case class EspConfigAnnotation(target: ModuleName, config: Config, dir: Either[String, String] = Right(".."))
     extends SingleTargetAnnotation[ModuleName] {
 
   def duplicate(targetx: ModuleName): EspConfigAnnotation = this.copy(target=targetx)
@@ -51,7 +51,7 @@ case class EspConfigAnnotation(target: ModuleName, config: AcceleratorConfig, di
   def toXML: String = {
     val xs = new XStream(new DomDriver("UTF-8", new XmlFriendlyNameCoder("_", "_")))
 
-    xs.registerConverter(new AcceleratorParameterConverter)
+    xs.registerConverter(new ParameterConverter)
     // xs.aliasSystemAttribute(null, "class")
     xs.alias("sld", this.getClass)
     xs.aliasField("accelerator", this.getClass, "config")
@@ -63,11 +63,11 @@ case class EspConfigAnnotation(target: ModuleName, config: AcceleratorConfig, di
     xs.useAttributeFor(config.getClass, "deviceId")
     xs.aliasField("device_id", config.getClass, "deviceId")
     xs.addImplicitArray(config.getClass, "param")
-    xs.alias("param", classOf[AcceleratorParameter])
-    xs.useAttributeFor(classOf[AcceleratorParameter], "name")
-    xs.aliasField("desc", classOf[AcceleratorParameter], "description")
-    xs.useAttributeFor(classOf[AcceleratorParameter], "description")
-    xs.omitField(classOf[AcceleratorParameter], "readOnly")
+    xs.alias("param", classOf[Parameter])
+    xs.useAttributeFor(classOf[Parameter], "name")
+    xs.aliasField("desc", classOf[Parameter], "description")
+    xs.useAttributeFor(classOf[Parameter], "description")
+    xs.omitField(classOf[Parameter], "readOnly")
     xs.toXML(this)
   }
 }
