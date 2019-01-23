@@ -1,4 +1,4 @@
-// Copyright 2018 IBM
+// Copyright 2018-2019 IBM
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import chisel3._
 import chisel3.experimental.{RawModule, withClockAndReset}
 
 trait AcceleratorWrapperIO { this: RawModule =>
+  val dmaWidth: Int
+
   val clk = IO(Input(Clock()))
   val rst = IO(Input(Bool()))
 
@@ -40,7 +42,7 @@ trait AcceleratorWrapperIO { this: RawModule =>
   // DMA Read data channel directly connected to the NoC queues.
   val dma_read_chnl_ready = IO(Output(Bool()))
   val dma_read_chnl_valid = IO(Input(Bool()))
-  val dma_read_chnl_data = IO(Input(UInt(32.W)))
+  val dma_read_chnl_data = IO(Input(UInt(dmaWidth.W)))
 
   // DMA Read control
   val dma_read_ctrl_ready = IO(Input(Bool()))
@@ -60,23 +62,18 @@ trait AcceleratorWrapperIO { this: RawModule =>
   // DMA Write data channel directly connected to the NoC queues
   val dma_write_chnl_ready = IO(Input(Bool()))
   val dma_write_chnl_valid = IO(Output(Bool()))
-  val dma_write_chnl_data = IO(Output(UInt(32.W)))
+  val dma_write_chnl_data = IO(Output(UInt(dmaWidth.W)))
 }
 
 /** Wraps a given [[Accelerator]] in a predicatable top-level interface. This is intended for direct integration with
   * the ESP acclerator socket.
   * @param gen the accelerator to wrap
-  * @param subName the top-level "name" of the accelerator
-  * @param parameters a string, typically consiting of stringified parameters, used to disambiguate this instance of the
   * accelerator from anoter
-  * @todo Make subName and parameters automatically inferred based on gen. This requires some merged support added to
-  * Chisel.
   */
-class AcceleratorWrapper(gen: => Accelerator, subName: String, parameters: String) extends RawModule
-    with AcceleratorWrapperIO {
+class AcceleratorWrapper(val dmaWidth: Int, gen: Int => Implementation) extends RawModule with AcceleratorWrapperIO {
 
-  override lazy val desiredName = s"${subName}_${parameters}_Wrapper"
-  val acc = withClockAndReset(clk, rst)(Module(gen))
+  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
+  val acc = withClockAndReset(clk, rst)(Module(gen(dmaWidth)))
 
   acc.io.conf.bits.length       := conf_info_len
   acc.io.conf.bits.batch        := conf_info_batch

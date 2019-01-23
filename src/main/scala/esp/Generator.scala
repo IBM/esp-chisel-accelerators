@@ -1,4 +1,4 @@
-// Copyright 2018 IBM
+// Copyright 2018-2019 IBM
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,13 +21,16 @@ import esp.examples.CounterAccelerator
 object Generator {
 
   def main(args: Array[String]): Unit = {
-    val examples: Seq[(String, String, () => Accelerator)] = Seq(
-      ("CounterAccelerator", 42.toString, () => new CounterAccelerator(42)) )
+    val examples: Seq[(String, String, () => AcceleratorWrapper)] =
+      Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)) )
+        .flatMap( a => Seq(32, 64, 128).map(b => (a._1, s"${a._2}_dma$b", () => new AcceleratorWrapper(b, a._3))) )
 
-    examples.map { case (name, parameters, gen) =>
-      val argsx = args ++ Array("--target-dir", s"build/$name/${name}_${parameters}_Wrapper",
+    examples.map { case (name, impl, gen) =>
+      val argsx = args ++ Array("--target-dir", s"build/$name/${name}_$impl",
                                 "--custom-transforms", "esp.transforms.EmitXML")
-      Driver.execute(argsx, () => new AcceleratorWrapper(gen(), name, "42")) }
+      Driver.execute(argsx, gen)
+    }
+
   }
 
 }

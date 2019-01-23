@@ -1,4 +1,4 @@
-// Copyright 2018 IBM
+// Copyright 2018-2019 IBM
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,29 +20,6 @@ import chisel3.util.{Decoupled, Valid}
 
 import firrtl.annotations.Annotation
 
-case class AcceleratorParameter(
-  name: String,
-  description: Option[String] = None,
-  value: Option[Int] = None,
-  size: Int = 32) {
-
-  val readOnly = value.isDefined
-
-  require(size >= 0, s"AccleratorParamater '$name' must be greater than 0 bits in size!")
-  require(size <= 32, s"AccleratorParamater '$name' must be less than 32 bits in size!")
-}
-
-
-case class AcceleratorConfig(
-  name: String,
-  description: String,
-  memoryFootprintMiB: Int,
-  deviceId: Int,
-  param: Array[AcceleratorParameter] = Array.empty) {
-
-  require(memoryFootprintMiB >= 0, s"AcceleratorConfig '$name' memory footprint must be greater than 0 MiB!")
-}
-
 class Configuration extends Bundle {
   val length = UInt(32.W)
   val batch = UInt(32.W)
@@ -53,32 +30,36 @@ class DmaControl extends Bundle {
   val length = UInt(32.W)
 }
 
-class DmaIO extends Bundle {
+class DmaIO(width: Int) extends Bundle {
   val Seq(readControl, writeControl) = Seq.fill(2)(Decoupled(new DmaControl))
-  val readChannel = Flipped(Decoupled(UInt(32.W)))
-  val writeChannel = Decoupled(UInt(32.W))
+  val readChannel = Flipped(Decoupled(UInt(width.W)))
+  val writeChannel = Decoupled(UInt(width.W))
 }
 
-class AcceleratorIO extends Bundle {
+class AcceleratorIO(val dmaWidth: Int) extends Bundle {
   val conf = Input(Valid(new Configuration))
-  val dma = new DmaIO
+  val dma = new DmaIO(dmaWidth)
   val done = Output(Bool())
   val debug = Output(UInt(32.W))
 }
 
-abstract class Accelerator extends Module with AcceleratorDefaults { self: Accelerator =>
-  lazy val io = IO(new AcceleratorIO)
+/** This contains the underlying hardware that implements an ESP accelerator [[Specification]]. A concrete subclass of
+  * [[Implementation]] represents one point in the design space for all accelerators meeting the [[Specification]].
+  * @param dmaWidth the width of the connection to the memory bus
+  */
+abstract class Implementation(dmaWidth: Int) extends Module with Specification { self: Implementation =>
 
-  def config: AcceleratorConfig
+  final lazy val io = IO(new AcceleratorIO(dmaWidth))
+
+  /** This defines a name describing this implementation.  */
+  def implementationName: String
 
   chisel3.experimental.annotate(
     new ChiselAnnotation {
       def toFirrtl: Annotation = EspConfigAnnotation(self.toNamed, config)
     }
   )
-}
 
-trait AcceleratorDefaults { this: Accelerator =>
   io.done := false.B
   io.debug := 0.U
 

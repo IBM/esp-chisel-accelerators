@@ -1,4 +1,4 @@
-// Copyright 2018 IBM
+// Copyright 2018-2019 IBM
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package esptests
 
 import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
 
-import esp.Accelerator
 import esp.examples.CounterAccelerator
 
 /** A test that the [[CounterAccelerator]] asserts it's done when it should
@@ -51,7 +50,7 @@ class AcceleratorSpec extends ChiselFlatSpec {
   behavior of "CounterAccelerator"
 
   it should "assert done after 42 cycles" in {
-    Driver(() => new CounterAccelerator(42), "firrtl")(dut => new CounterAcceleratorTester(dut)) should be (true)
+    Driver(() => new CounterAccelerator(32), "firrtl")(dut => new CounterAcceleratorTester(dut)) should be (true)
   }
 
 }
