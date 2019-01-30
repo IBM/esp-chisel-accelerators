@@ -33,7 +33,7 @@ trait CounterSpecification extends Specification {
    * be converted to an XML description by a custom FIRRTL transform, [[esp.transforms.EmitXML]]. */
   override lazy val config: Config = Config(
     name = "CounterAccelerator",
-    description = s"Simple accelerator that reports being done a fixed number of cycles after being enabled",
+    description = s"Fixed-count timer",
     memoryFootprintMiB = 0,
     deviceId = 0xC,
     param = Array(
