@@ -20,11 +20,6 @@ import chisel3.util.{Decoupled, Valid}
 
 import firrtl.annotations.Annotation
 
-class Configuration extends Bundle {
-  val length = UInt(32.W)
-  val batch = UInt(32.W)
-}
-
 class DmaControl extends Bundle {
   val index = UInt(32.W)
   val length = UInt(32.W)
@@ -37,7 +32,7 @@ class DmaIO(width: Int) extends Bundle {
 }
 
 class AcceleratorIO(val dmaWidth: Int) extends Bundle {
-  val conf = Input(Valid(new Configuration))
+  val enable = Input(Bool())
   val dma = new DmaIO(dmaWidth)
   val done = Output(Bool())
   val debug = Output(UInt(32.W))
@@ -49,8 +44,6 @@ class AcceleratorIO(val dmaWidth: Int) extends Bundle {
   */
 abstract class Implementation(dmaWidth: Int) extends Module with Specification { self: Implementation =>
 
-  final lazy val io = IO(new AcceleratorIO(dmaWidth))
-
   /** This defines a name describing this implementation.  */
   def implementationName: String
 
@@ -60,19 +53,21 @@ abstract class Implementation(dmaWidth: Int) extends Module with Specification {
     }
   )
 
-  io.done := false.B
-  io.debug := 0.U
+  def InitCommonIo(io: AcceleratorIO) {
+    io.done := false.B
+    io.debug := 0.U
 
-  io.dma.readControl.valid := false.B
-  io.dma.readControl.bits.index := 0.U
-  io.dma.readControl.bits.length := 0.U
+    io.dma.readControl.valid := false.B
+    io.dma.readControl.bits.index := 0.U
+    io.dma.readControl.bits.length := 0.U
 
-  io.dma.writeControl.valid := false.B
-  io.dma.writeControl.bits.index := 0.U
-  io.dma.writeControl.bits.length := 0.U
+    io.dma.writeControl.valid := false.B
+    io.dma.writeControl.bits.index := 0.U
+    io.dma.writeControl.bits.length := 0.U
 
-  io.dma.readChannel.ready := 0.U
+    io.dma.readChannel.ready := 0.U
 
-  io.dma.writeChannel.valid := 0.U
-  io.dma.writeChannel.bits := 0.U
+    io.dma.writeChannel.valid := 0.U
+    io.dma.writeChannel.bits := 0.U
+  }
 }
