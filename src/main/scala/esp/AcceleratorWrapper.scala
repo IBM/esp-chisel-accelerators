@@ -23,12 +23,6 @@ trait AcceleratorWrapperIO { this: RawModule =>
   val clk = IO(Input(Clock()))
   val rst = IO(Input(Bool()))
 
-  // Configuration input (assigned from memory-mapped registers in the tile. There can be up to 14 32-bits user-defined
-  // registers. We've reserved registers 15 and 16 to control a small on-tile memory in case more memory-mapped
-  // registers are needed.
-  val conf_info_len = IO(Input(UInt(32.W)))
-  val conf_info_batch = IO(Input(UInt(32.W)))
-
   // Start accelerator (assigned from memory-mapped command register in the tile
   val conf_done = IO(Input(Bool()))
 
@@ -65,39 +59,3 @@ trait AcceleratorWrapperIO { this: RawModule =>
   val dma_write_chnl_data = IO(Output(UInt(dmaWidth.W)))
 }
 
-/** Wraps a given [[Accelerator]] in a predicatable top-level interface. This is intended for direct integration with
-  * the ESP acclerator socket.
-  * @param gen the accelerator to wrap
-  * accelerator from anoter
-  */
-class AcceleratorWrapper(val dmaWidth: Int, gen: Int => Implementation) extends RawModule with AcceleratorWrapperIO {
-
-  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
-  val acc = withClockAndReset(clk, rst)(Module(gen(dmaWidth)))
-
-  acc.io.conf.bits.length       := conf_info_len
-  acc.io.conf.bits.batch        := conf_info_batch
-  acc.io.conf.valid             := conf_done
-
-  acc_done                      := acc.io.done
-
-  debug                         := acc.io.debug
-
-  acc.io.dma.readControl.ready  := dma_read_ctrl_ready
-  dma_read_ctrl_valid           := acc.io.dma.readControl.valid
-  dma_read_ctrl_data_index      := acc.io.dma.readControl.bits.index
-  dma_read_ctrl_data_length     := acc.io.dma.readControl.bits.length
-
-  acc.io.dma.writeControl.ready := dma_write_ctrl_ready
-  dma_write_ctrl_valid          := acc.io.dma.writeControl.valid
-  dma_write_ctrl_data_index     := acc.io.dma.writeControl.bits.index
-  dma_write_ctrl_data_length    := acc.io.dma.writeControl.bits.length
-
-  dma_read_chnl_ready           := acc.io.dma.readChannel.ready
-  acc.io.dma.readChannel.valid  := dma_read_chnl_valid
-  acc.io.dma.readChannel.bits   := dma_read_chnl_data
-
-  acc.io.dma.writeChannel.ready := dma_write_chnl_ready
-  dma_write_chnl_valid          := acc.io.dma.writeChannel.valid
-  dma_write_chnl_data           := acc.io.dma.writeChannel.bits
-}
