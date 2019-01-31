@@ -15,9 +15,9 @@
 package esp.examples
 
 import chisel3._
-import chisel3.util.Counter
+import chisel3.experimental.{RawModule, withClockAndReset}
 
-import esp.{Config, Implementation, Parameter, Specification}
+import esp.{Config, AcceleratorWrapperIO, AcceleratorIO, Implementation, Parameter, Specification}
 
 import sys.process._
 
@@ -25,8 +25,6 @@ import sys.process._
   * @param ticks the number of clock ticks until done
   */
 trait CounterSpecification extends Specification {
-
-  def ticks: Int
 
   /* This defines the abstract member config that provides necessary information for the ESP framework to generate an XML
    * accelerator configuration. At the Chisel level, this will be used to emit an [[esp.EspConfigAnnotation]] which will
@@ -44,24 +42,77 @@ trait CounterSpecification extends Specification {
       ),
       Parameter(
         name = "ticks",
-        description = Some("read only tick count"),
-        value = Some(ticks))
+        description = Some("Ticks to timeout"),
+        value = None)
     )
   )
 
 }
 
-class CounterAccelerator(dmaWidth: Int) extends Implementation(dmaWidth) with CounterSpecification {
+class CounterAcceleratorIO(dmaWidth: Int) extends AcceleratorIO(dmaWidth) { self: CounterAcceleratorIO =>
+  val conf_info_ticks = Input(UInt(32.W))
+}
 
-  override val ticks: Int = 42
+class CounterAcceleratorImplementation(dmaWidth: Int) extends Implementation(dmaWidth) with CounterSpecification {
+
   override val implementationName: String = "Default_dma" + dmaWidth
 
+  final lazy val io = IO(new CounterAcceleratorIO(dmaWidth))
+
+  InitCommonIo(io)
+}
+
+class CounterAccelerator(dmaWidth: Int) extends CounterAcceleratorImplementation(dmaWidth) {
+
+  val ticks = RegInit(42.U)
+
   val enabled = RegInit(false.B)
+  val done    = RegInit(false.B)
+  val value   = RegInit(0.U(16.W))
 
-  val (_, fire) = Counter(enabled, 42)
-  io.done := fire
+  when (io.enable)         { enabled := true.B; ticks := io.conf_info_ticks - 1.U}
+  when (enabled & ~done)   { value := value + 1.U }
+  when (value === ticks)   { done := true.B }
+  when (~io.enable)        { enabled := false.B; done := false.B }
 
-  when (io.conf.valid) { enabled := true.B  }
-  when (fire)          { enabled := false.B }
+  io.done := done
+}
 
+/** Wraps CounterAccelerator in a predicatable top-level interface. This is intended for direct integration with
+  * the ESP acclerator socket.
+  * @param gen is the accelerator implementation to wrap
+  */
+class CounterAcceleratorWrapper(val dmaWidth: Int, gen: Int => CounterAcceleratorImplementation) extends RawModule with AcceleratorWrapperIO {
+  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
+  val acc = withClockAndReset(clk, ~rst)(Module(gen(dmaWidth)))
+
+  val conf_info_ticks = IO(Input(UInt(32.W)))
+
+  acc.io.conf_info_ticks        := conf_info_ticks
+
+  acc.io.conf_info_ticks        := conf_info_ticks
+
+  acc.io.enable                 := conf_done
+
+  acc_done                      := acc.io.done
+
+  debug                         := acc.io.debug
+
+  acc.io.dma.readControl.ready  := dma_read_ctrl_ready
+  dma_read_ctrl_valid           := acc.io.dma.readControl.valid
+  dma_read_ctrl_data_index      := acc.io.dma.readControl.bits.index
+  dma_read_ctrl_data_length     := acc.io.dma.readControl.bits.length
+
+  acc.io.dma.writeControl.ready := dma_write_ctrl_ready
+  dma_write_ctrl_valid          := acc.io.dma.writeControl.valid
+  dma_write_ctrl_data_index     := acc.io.dma.writeControl.bits.index
+  dma_write_ctrl_data_length    := acc.io.dma.writeControl.bits.length
+
+  dma_read_chnl_ready           := acc.io.dma.readChannel.ready
+  acc.io.dma.readChannel.valid  := dma_read_chnl_valid
+  acc.io.dma.readChannel.bits   := dma_read_chnl_data
+
+  acc.io.dma.writeChannel.ready := dma_write_chnl_ready
+  dma_write_chnl_valid          := acc.io.dma.writeChannel.valid
+  dma_write_chnl_data           := acc.io.dma.writeChannel.bits
 }
