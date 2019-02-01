@@ -16,14 +16,14 @@ package esp
 
 import chisel3.Driver
 
-import esp.examples._
+import esp.examples.CounterAccelerator
 
 object Generator {
 
   def main(args: Array[String]): Unit = {
-    val examples: Seq[(String, String, () => CounterAcceleratorWrapper)] =
+    val examples: Seq[(String, String, () => AcceleratorWrapper)] =
       Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)) )
-        .flatMap( a => Seq(32, 64, 128).map(b => (a._1, s"${a._2}_dma$b", () => new CounterAcceleratorWrapper(b, a._3))) )
+        .flatMap( a => Seq(32, 64, 128).map(b => (a._1, s"${a._2}_dma$b", () => new AcceleratorWrapper(b, a._3))) )
 
     examples.map { case (name, impl, gen) =>
       val argsx = args ++ Array("--target-dir", s"build/$name/${name}_$impl",

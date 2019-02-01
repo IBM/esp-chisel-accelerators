@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package esptests
+package esptests.examples
 
 import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
 
@@ -21,8 +21,8 @@ import esp.examples.CounterAccelerator
 /** A test that the [[CounterAccelerator]] asserts it's done when it should
   * @param dut a [[CounterAccelerator]]
   */
-class CounterAcceleratorTester(dut: CounterAccelerator) extends PeekPokeTester(dut) {
-  def reset(): Unit = Seq(dut.io.conf.valid,
+class CounterAcceleratorTester(dut: CounterAccelerator, ticks: Int) extends PeekPokeTester(dut) {
+  def reset(): Unit = Seq(dut.io.enable,
                           dut.io.dma.readControl.ready,
                           dut.io.dma.writeControl.ready,
                           dut.io.dma.readChannel.ready,
@@ -32,9 +32,13 @@ class CounterAcceleratorTester(dut: CounterAccelerator) extends PeekPokeTester(d
   reset()
 
   step(1)
-  poke(dut.io.conf.valid, 1)
+  poke(dut.io.config.get("ticks").asUInt, ticks)
+  poke(dut.io.enable, 1)
 
-  for (i <- 0 to dut.ticks - 2) {
+  step(1)
+  poke(dut.io.enable, 0)
+
+  for (i <- 0 to ticks - 2) {
     step(1)
     expect(dut.io.done, 0)
   }
@@ -45,12 +49,18 @@ class CounterAcceleratorTester(dut: CounterAccelerator) extends PeekPokeTester(d
   expect(dut.io.done, 0)
 }
 
-class AcceleratorSpec extends ChiselFlatSpec {
+class CounterAcceleratorSpec extends ChiselFlatSpec {
 
   behavior of "CounterAccelerator"
 
-  it should "assert done after 42 cycles" in {
-    Driver(() => new CounterAccelerator(32), "firrtl")(dut => new CounterAcceleratorTester(dut)) should be (true)
+  def doneInNCycles(cycles: Int): Unit = {
+    it should s"assert done after $cycles cycles" in {
+      Driver(() => new CounterAccelerator(32), "firrtl") {
+        dut => new CounterAcceleratorTester(dut, cycles)
+      } should be (true)
+    }
   }
+
+  Seq(8, 64, 512).foreach(doneInNCycles(_))
 
 }

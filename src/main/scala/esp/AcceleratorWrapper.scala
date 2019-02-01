@@ -59,3 +59,43 @@ trait AcceleratorWrapperIO { this: RawModule =>
   val dma_write_chnl_data = IO(Output(UInt(dmaWidth.W)))
 }
 
+/** Wraps a given [[Accelerator]] in a predicatable top-level interface. This is intended for direct integration with
+  * the ESP acclerator socket.
+  * @param gen the accelerator to wrap
+  * accelerator from anoter
+  */
+final class AcceleratorWrapper(val dmaWidth: Int, gen: Int => Implementation) extends RawModule with AcceleratorWrapperIO {
+
+  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
+  val acc = withClockAndReset(clk, ~rst)(Module(gen(dmaWidth)))
+
+  val conf_info = acc.io.config.map(a => IO(Input(a.cloneType)))
+
+  if (conf_info.isDefined) {
+    acc.io.config.get           := conf_info.get
+  }
+
+  acc.io.enable                 := conf_done
+
+  acc_done                      := acc.io.done
+
+  debug                         := acc.io.debug
+
+  acc.io.dma.readControl.ready  := dma_read_ctrl_ready
+  dma_read_ctrl_valid           := acc.io.dma.readControl.valid
+  dma_read_ctrl_data_index      := acc.io.dma.readControl.bits.index
+  dma_read_ctrl_data_length     := acc.io.dma.readControl.bits.length
+
+  acc.io.dma.writeControl.ready := dma_write_ctrl_ready
+  dma_write_ctrl_valid          := acc.io.dma.writeControl.valid
+  dma_write_ctrl_data_index     := acc.io.dma.writeControl.bits.index
+  dma_write_ctrl_data_length    := acc.io.dma.writeControl.bits.length
+
+  dma_read_chnl_ready           := acc.io.dma.readChannel.ready
+  acc.io.dma.readChannel.valid  := dma_read_chnl_valid
+  acc.io.dma.readChannel.bits   := dma_read_chnl_data
+
+  acc.io.dma.writeChannel.ready := dma_write_chnl_ready
+  dma_write_chnl_valid          := acc.io.dma.writeChannel.valid
+  dma_write_chnl_data           := acc.io.dma.writeChannel.bits
+}

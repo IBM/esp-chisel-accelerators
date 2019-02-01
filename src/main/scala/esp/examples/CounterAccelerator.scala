@@ -49,70 +49,27 @@ trait CounterSpecification extends Specification {
 
 }
 
-class CounterAcceleratorIO(dmaWidth: Int) extends AcceleratorIO(dmaWidth) { self: CounterAcceleratorIO =>
-  val conf_info_ticks = Input(UInt(32.W))
-}
-
-class CounterAcceleratorImplementation(dmaWidth: Int) extends Implementation(dmaWidth) with CounterSpecification {
+class CounterAccelerator(dmaWidth: Int) extends Implementation(dmaWidth) with CounterSpecification {
 
   override val implementationName: String = "Default_dma" + dmaWidth
 
-  final lazy val io = IO(new CounterAcceleratorIO(dmaWidth))
-
-  InitCommonIo(io)
-}
-
-class CounterAccelerator(dmaWidth: Int) extends CounterAcceleratorImplementation(dmaWidth) {
-
-  val ticks = RegInit(42.U)
-
+  val ticks, value = Reg(UInt(config.paramMap("ticks").size.W))
   val enabled = RegInit(false.B)
-  val done    = RegInit(false.B)
-  val value   = RegInit(0.U(16.W))
+  val fire = value === ticks
 
-  when (io.enable)         { enabled := true.B; ticks := io.conf_info_ticks - 1.U}
-  when (enabled & ~done)   { value := value + 1.U }
-  when (value === ticks)   { done := true.B }
-  when (~io.enable)        { enabled := false.B; done := false.B }
+  when (io.enable) {
+    enabled := true.B
+    ticks := io.config.get("ticks").asUInt
+    value := 0.U
+  }
 
-  io.done := done
-}
+  when (enabled) {
+    value := value + 1.U
+  }
 
-/** Wraps CounterAccelerator in a predicatable top-level interface. This is intended for direct integration with
-  * the ESP acclerator socket.
-  * @param gen is the accelerator implementation to wrap
-  */
-class CounterAcceleratorWrapper(val dmaWidth: Int, gen: Int => CounterAcceleratorImplementation) extends RawModule with AcceleratorWrapperIO {
-  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
-  val acc = withClockAndReset(clk, ~rst)(Module(gen(dmaWidth)))
+  when (fire) {
+    enabled := false.B
+  }
 
-  val conf_info_ticks = IO(Input(UInt(32.W)))
-
-  acc.io.conf_info_ticks        := conf_info_ticks
-
-  acc.io.conf_info_ticks        := conf_info_ticks
-
-  acc.io.enable                 := conf_done
-
-  acc_done                      := acc.io.done
-
-  debug                         := acc.io.debug
-
-  acc.io.dma.readControl.ready  := dma_read_ctrl_ready
-  dma_read_ctrl_valid           := acc.io.dma.readControl.valid
-  dma_read_ctrl_data_index      := acc.io.dma.readControl.bits.index
-  dma_read_ctrl_data_length     := acc.io.dma.readControl.bits.length
-
-  acc.io.dma.writeControl.ready := dma_write_ctrl_ready
-  dma_write_ctrl_valid          := acc.io.dma.writeControl.valid
-  dma_write_ctrl_data_index     := acc.io.dma.writeControl.bits.index
-  dma_write_ctrl_data_length    := acc.io.dma.writeControl.bits.length
-
-  dma_read_chnl_ready           := acc.io.dma.readChannel.ready
-  acc.io.dma.readChannel.valid  := dma_read_chnl_valid
-  acc.io.dma.readChannel.bits   := dma_read_chnl_data
-
-  acc.io.dma.writeChannel.ready := dma_write_chnl_ready
-  dma_write_chnl_valid          := acc.io.dma.writeChannel.valid
-  dma_write_chnl_data           := acc.io.dma.writeChannel.bits
+  io.done := enabled & fire
 }
