@@ -68,6 +68,9 @@ case class EspConfigAnnotation(target: ModuleName, config: Config, dir: Either[S
     xs.aliasField("desc", classOf[Parameter], "description")
     xs.useAttributeFor(classOf[Parameter], "description")
     xs.omitField(classOf[Parameter], "readOnly")
+    xs.omitField(config.getClass, "paramMap")
+    xs.omitField(this.getClass, "target")
+    xs.omitField(this.getClass, "dir")
     xs.toXML(this)
   }
 }
