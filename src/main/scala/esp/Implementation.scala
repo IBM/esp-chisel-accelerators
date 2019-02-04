@@ -20,6 +20,24 @@ import chisel3.util.{Decoupled, Valid}
 
 import firrtl.annotations.Annotation
 
+import scala.collection.immutable
+
+class ConfigIO private (espConfig: Config) extends Record {
+  val elements = immutable.ListMap(espConfig.param.collect{ case a if !a.readOnly => a.name -> UInt(a.size.W)}: _*)
+  override def cloneType: this.type = (new ConfigIO(espConfig)).asInstanceOf[this.type]
+  def apply(a: String): Data = elements(a)
+}
+
+object ConfigIO {
+
+  def apply(espConfig: Config): Option[ConfigIO] = {
+    val rwParameters = espConfig.param.collect{ case a if !a.readOnly => a.name -> UInt(a.size.W) }
+    if (rwParameters.isEmpty) { None                          }
+    else                      { Some(new ConfigIO(espConfig)) }
+  }
+
+}
+
 class DmaControl extends Bundle {
   val index = UInt(32.W)
   val length = UInt(32.W)
@@ -31,20 +49,24 @@ class DmaIO(width: Int) extends Bundle {
   val writeChannel = Decoupled(UInt(width.W))
 }
 
-class AcceleratorIO(val dmaWidth: Int) extends Bundle {
+class AcceleratorIO(val dmaWidth: Int, val espConfig: Config) extends Bundle {
   val enable = Input(Bool())
+  val config = ConfigIO(espConfig).map(Input(_))
   val dma = new DmaIO(dmaWidth)
   val done = Output(Bool())
   val debug = Output(UInt(32.W))
 }
 
+
 /** This contains the underlying hardware that implements an ESP accelerator [[Specification]]. A concrete subclass of
   * [[Implementation]] represents one point in the design space for all accelerators meeting the [[Specification]].
   * @param dmaWidth the width of the connection to the memory bus
   */
-abstract class Implementation(dmaWidth: Int) extends Module with Specification { self: Implementation =>
+abstract class Implementation(val dmaWidth: Int) extends Module with Specification { self: Implementation =>
 
-  /** This defines a name describing this implementation.  */
+  lazy val io = IO(new AcceleratorIO(dmaWidth, config))
+
+  /** This defines a name describing this implementation. */
   def implementationName: String
 
   chisel3.experimental.annotate(
@@ -53,21 +75,19 @@ abstract class Implementation(dmaWidth: Int) extends Module with Specification {
     }
   )
 
-  def InitCommonIo(io: AcceleratorIO) {
-    io.done := false.B
-    io.debug := 0.U
+  io.done := false.B
+  io.debug := 0.U
 
-    io.dma.readControl.valid := false.B
-    io.dma.readControl.bits.index := 0.U
-    io.dma.readControl.bits.length := 0.U
+  io.dma.readControl.valid := false.B
+  io.dma.readControl.bits.index := 0.U
+  io.dma.readControl.bits.length := 0.U
 
-    io.dma.writeControl.valid := false.B
-    io.dma.writeControl.bits.index := 0.U
-    io.dma.writeControl.bits.length := 0.U
+  io.dma.writeControl.valid := false.B
+  io.dma.writeControl.bits.index := 0.U
+  io.dma.writeControl.bits.length := 0.U
 
-    io.dma.readChannel.ready := 0.U
+  io.dma.readChannel.ready := 0.U
 
-    io.dma.writeChannel.valid := 0.U
-    io.dma.writeChannel.bits := 0.U
-  }
+  io.dma.writeChannel.valid := 0.U
+  io.dma.writeChannel.bits := 0.U
 }
