@@ -23,12 +23,6 @@ trait AcceleratorWrapperIO { this: RawModule =>
   val clk = IO(Input(Clock()))
   val rst = IO(Input(Bool()))
 
-  // Configuration input (assigned from memory-mapped registers in the tile. There can be up to 14 32-bits user-defined
-  // registers. We've reserved registers 15 and 16 to control a small on-tile memory in case more memory-mapped
-  // registers are needed.
-  val conf_info_len = IO(Input(UInt(32.W)))
-  val conf_info_batch = IO(Input(UInt(32.W)))
-
   // Start accelerator (assigned from memory-mapped command register in the tile
   val conf_done = IO(Input(Bool()))
 
@@ -70,14 +64,18 @@ trait AcceleratorWrapperIO { this: RawModule =>
   * @param gen the accelerator to wrap
   * accelerator from anoter
   */
-class AcceleratorWrapper(val dmaWidth: Int, gen: Int => Implementation) extends RawModule with AcceleratorWrapperIO {
+final class AcceleratorWrapper(val dmaWidth: Int, gen: Int => Implementation) extends RawModule with AcceleratorWrapperIO {
 
   override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
-  val acc = withClockAndReset(clk, rst)(Module(gen(dmaWidth)))
+  val acc = withClockAndReset(clk, ~rst)(Module(gen(dmaWidth)))
 
-  acc.io.conf.bits.length       := conf_info_len
-  acc.io.conf.bits.batch        := conf_info_batch
-  acc.io.conf.valid             := conf_done
+  val conf_info = acc.io.config.map(a => IO(Input(a.cloneType)))
+
+  if (conf_info.isDefined) {
+    acc.io.config.get           := conf_info.get
+  }
+
+  acc.io.enable                 := conf_done
 
   acc_done                      := acc.io.done
 

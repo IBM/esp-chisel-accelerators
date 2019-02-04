@@ -15,9 +15,9 @@
 package esp.examples
 
 import chisel3._
-import chisel3.util.Counter
+import chisel3.experimental.{RawModule, withClockAndReset}
 
-import esp.{Config, Implementation, Parameter, Specification}
+import esp.{Config, AcceleratorWrapperIO, AcceleratorIO, Implementation, Parameter, Specification}
 
 import sys.process._
 
@@ -26,14 +26,12 @@ import sys.process._
   */
 trait CounterSpecification extends Specification {
 
-  def ticks: Int
-
   /* This defines the abstract member config that provides necessary information for the ESP framework to generate an XML
    * accelerator configuration. At the Chisel level, this will be used to emit an [[esp.EspConfigAnnotation]] which will
    * be converted to an XML description by a custom FIRRTL transform, [[esp.transforms.EmitXML]]. */
   override lazy val config: Config = Config(
     name = "CounterAccelerator",
-    description = s"Simple accelerator that reports being done a fixed number of cycles after being enabled",
+    description = s"Fixed-count timer",
     memoryFootprintMiB = 0,
     deviceId = 0xC,
     param = Array(
@@ -44,8 +42,8 @@ trait CounterSpecification extends Specification {
       ),
       Parameter(
         name = "ticks",
-        description = Some("read only tick count"),
-        value = Some(ticks))
+        description = Some("Ticks to timeout"),
+        value = None)
     )
   )
 
@@ -53,15 +51,25 @@ trait CounterSpecification extends Specification {
 
 class CounterAccelerator(dmaWidth: Int) extends Implementation(dmaWidth) with CounterSpecification {
 
-  override val ticks: Int = 42
-  override val implementationName: String = "Default"
+  override val implementationName: String = "Default_dma" + dmaWidth
 
+  val ticks, value = Reg(UInt(config.paramMap("ticks").size.W))
   val enabled = RegInit(false.B)
+  val fire = value === ticks
 
-  val (_, fire) = Counter(enabled, 42)
-  io.done := fire
+  when (io.enable) {
+    enabled := true.B
+    ticks := io.config.get("ticks").asUInt
+    value := 0.U
+  }
 
-  when (io.conf.valid) { enabled := true.B  }
-  when (fire)          { enabled := false.B }
+  when (enabled) {
+    value := value + 1.U
+  }
 
+  when (fire) {
+    enabled := false.B
+  }
+
+  io.done := enabled & fire
 }

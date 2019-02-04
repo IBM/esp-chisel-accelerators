@@ -19,7 +19,7 @@ import firrtl.{ir => fir}
 import org.scalatest.{FlatSpec, Matchers}
 import scala.io.Source
 import scala.util.matching.Regex
-import esp.{AcceleratorWrapper, Config, Implementation, Specification}
+import esp.{AcceleratorWrapper, Config, Implementation, Parameter, Specification}
 
 class AcceleratorWrapperSpec extends FlatSpec with Matchers {
 
@@ -47,11 +47,15 @@ class AcceleratorWrapperSpec extends FlatSpec with Matchers {
   }
 
   trait FooSpecification extends Specification {
-    override val config: Config = Config(
+    override lazy val config: Config = Config(
       name = "foo",
       description = "a dummy accelerator used for unit tests",
       memoryFootprintMiB = 0,
-      deviceId = 0
+      deviceId = 0,
+      param = Array(
+        Parameter("len"),
+        Parameter("batch")
+      )
     )
   }
 

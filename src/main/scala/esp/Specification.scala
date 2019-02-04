@@ -51,6 +51,13 @@ case class Config(
 
   def espString: String = (name +: param).mkString("_")
 
+  val paramMap: Map[String, Parameter] = param
+    .groupBy(_.name)
+    .map{ case (k, v) =>
+      require(v.size == 1, s"AcceleratorConfig '$name' has non-uniquely named parameter '$k'")
+      k -> v.head
+    }
+
 }
 
 /** This defines ESP configuration information shared across a range of accelerator [[Implementation]]s. */
