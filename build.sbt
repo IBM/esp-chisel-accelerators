@@ -24,13 +24,13 @@ def javacOptionsVersion(scalaVersion: String): Seq[String] = {
   }
 }
 
-name := "esp-accelerators"
+name := "esp-chisel-accelerators"
 
-version := "3.1.0"
+version := "1.0.0"
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.8"
 
-crossScalaVersions := Seq("2.11.12", "2.12.6")
+crossScalaVersions := Seq("2.11.12", "2.12.8")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),
