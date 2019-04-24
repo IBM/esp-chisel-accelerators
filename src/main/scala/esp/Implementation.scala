@@ -43,10 +43,10 @@ class DmaControl extends Bundle {
   val length = UInt(32.W)
 }
 
-class DmaIO(width: Int) extends Bundle {
+class DmaIO(val dmaWidth: Int) extends Bundle {
   val Seq(readControl, writeControl) = Seq.fill(2)(Decoupled(new DmaControl))
-  val readChannel = Flipped(Decoupled(UInt(width.W)))
-  val writeChannel = Decoupled(UInt(width.W))
+  val readChannel = Flipped(Decoupled(UInt(dmaWidth.W)))
+  val writeChannel = Decoupled(UInt(dmaWidth.W))
 }
 
 class AcceleratorIO(val dmaWidth: Int, val espConfig: Config) extends Bundle {
