@@ -1,6 +1,5 @@
 language: scala
-dist: trusty
-sudo: false
+dist: xenial
 
 cache:
   directories:
