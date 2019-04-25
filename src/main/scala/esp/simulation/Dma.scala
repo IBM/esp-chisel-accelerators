@@ -64,11 +64,6 @@ class Dma[A <: Data](size: Int, gen: A, initFile: Option[String] = None) extends
 
   arb.io.out.ready := !req.valid
   when (arb.io.out.fire) {
-//     printf(
-//       p"""[info] DMA request started:
-// [info]   - read/write: ${arb.io.chosen}
-// [info]   - index: ${arb.io.out.bits.index}
-// [info]   - length: ${arb.io.out.bits.length}\n""")
     req.valid := true.B
     req.bits.index := arb.io.out.bits.index
     req.bits.length := arb.io.out.bits.length
@@ -84,8 +79,10 @@ class Dma[A <: Data](size: Int, gen: A, initFile: Option[String] = None) extends
   assert(!readQueue.io.enq.valid || readQueue.io.enq.ready, "Response Queue dropped input data!")
 
   /** Queue of write requests */
-  // val writeQueue: Queue[A] = Module(new Queue(gen, 8))
-  // writeQueue.io.enq <> io.writeChannel
+  val writeQueue: Queue[A] = Module(new Queue(gen, 8))
+  writeQueue.io.enq.valid := io.writeChannel.valid
+  writeQueue.io.enq.bits := io.writeChannel.bits
+  io.writeChannel.ready := writeQueue.io.enq.ready && (req.bits.tpe === DmaRequest.write)
 
   /** Asserted if it is safe to send a ballistic request to the memory that will be caught by the [[readQueue]]. This
     * implies that the [[Dma]] unit is processing a read request and the [[readQueue]] will not be full by the time the
@@ -96,14 +93,17 @@ class Dma[A <: Data](size: Int, gen: A, initFile: Option[String] = None) extends
     (readQueue.io.count < (readQueue.entries - 2).U) &&
     (req.bits.length =/= 0.U)
 
-  /** */
-  val doWrite: Bool = req.valid && (req.bits.tpe === DmaRequest.write)
+  /** Asserted if it is safe to send a write to the memory. */
+  val doWrite: Bool = req.valid &&
+    (req.bits.tpe === DmaRequest.write) &&
+    writeQueue.io.deq.valid &&
+    (req.bits.length =/= 0.U)
 
   /* Synchronous Read Memory that encapsulates the virtual memory space of the accelerator */
   val mem: SyncReadMem[A] = SyncReadMem(size, gen.cloneType)
   initFile.map(loadMemoryFromFile(mem, _))
 
-  readQueue.io.enq.bits := mem(req.bits.index)
+  readQueue.io.enq.bits := mem.read(req.bits.index)
 
   /* Allow a read to go to the Arbiter */
   readQueue.io.enq.valid := RegNext(doRead)
@@ -113,13 +113,16 @@ class Dma[A <: Data](size: Int, gen: A, initFile: Option[String] = None) extends
   }
 
   /* When the request is done, then reset the request register */
-  when (req.valid && (req.bits.length === 0.U)) {
+  when (req.valid && (req.bits.length === 0.U) && !readQueue.io.deq.valid && !writeQueue.io.deq.valid) {
     req.valid := false.B
-    // printf("[info] DMA request done!\n")
   }
 
+  /* Allow a write to go to the memory */
+  writeQueue.io.deq.ready := doWrite
   when (doWrite) {
-    assert(false.B, "Unimplemented")
+    req.bits.index := req.bits.index + 1.U
+    req.bits.length := req.bits.length - 1.U
+    mem.write(req.bits.index, writeQueue.io.deq.bits)
   }
 
 }
