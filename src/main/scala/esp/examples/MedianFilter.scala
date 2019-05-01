@@ -17,7 +17,7 @@ package esp.examples
 import chisel3._
 import chisel3.util.{log2Up, Enum, Valid}
 
-import esp.{Config, ConfigIO, Implementation, PackUnpack, Parameter, Specification}
+import esp.{Config, ConfigIO, Implementation, Parameter, Specification}
 
 import sys.process._
 
