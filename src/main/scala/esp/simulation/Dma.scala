@@ -33,9 +33,7 @@ object DmaRequest {
   def init(memorySize: Int) = {
     val a = Wire(new Valid(new DmaRequest(memorySize)))
     a.valid := false.B
-    a.bits.index := DontCare
-    a.bits.length := DontCare
-    a.bits.tpe := DontCare
+    a.bits.getElements.foreach(_ := DontCare)
     a
   }
 }

@@ -14,15 +14,16 @@
 
 package esp
 
-import chisel3.Driver
+import chisel3._
 
-import esp.examples.CounterAccelerator
+import esp.examples.{CounterAccelerator, MedianFilter}
 
 object Generator {
 
   def main(args: Array[String]): Unit = {
     val examples: Seq[(String, String, () => AcceleratorWrapper)] =
-      Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)) )
+      Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)),
+           ("MedianFilterAccelerator", "Default", (a: Int) => new MedianFilter(a, 1024, UInt(a.W))))
         .flatMap( a => Seq(32, 64, 128).map(b => (a._1, s"${a._2}_dma$b", () => new AcceleratorWrapper(b, a._3))) )
 
     examples.map { case (name, impl, gen) =>
