@@ -40,7 +40,7 @@ object ConfigIO {
 
 object DmaSize {
   private val enums = Enum(8)
-  val Seq(bytes, wordHalf, word, wordDouble, wordQuad, word8, word16, word32) = Enum(8)
+  val Seq(bytes, wordHalf, word, wordDouble, wordQuad, word8, word16, word32) = enums
   def gen: UInt = chiselTypeOf(enums.head)
 }
 
