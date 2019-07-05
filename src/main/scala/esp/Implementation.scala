@@ -16,7 +16,7 @@ package esp
 
 import chisel3._
 import chisel3.experimental.ChiselAnnotation
-import chisel3.util.{Decoupled, Valid}
+import chisel3.util.{Decoupled, Valid, Enum}
 
 import firrtl.annotations.Annotation
 
@@ -38,9 +38,16 @@ object ConfigIO {
 
 }
 
+object DmaSize {
+  private val enums = Enum(8)
+  val Seq(bytes, wordHalf, word, wordDouble, wordQuad, word8, word16, word32) = enums
+  def gen: UInt = chiselTypeOf(enums.head)
+}
+
 class DmaControl extends Bundle {
   val index = UInt(32.W)
   val length = UInt(32.W)
+  val size = DmaSize.gen
 }
 
 class DmaIO(val dmaWidth: Int) extends Bundle {
@@ -81,10 +88,12 @@ abstract class Implementation(val dmaWidth: Int) extends Module with Specificati
   io.dma.readControl.valid := false.B
   io.dma.readControl.bits.index := 0.U
   io.dma.readControl.bits.length := 0.U
+  io.dma.readControl.bits.size := DmaSize.word
 
   io.dma.writeControl.valid := false.B
   io.dma.writeControl.bits.index := 0.U
   io.dma.writeControl.bits.length := 0.U
+  io.dma.writeControl.bits.size := DmaSize.word
 
   io.dma.readChannel.ready := 0.U
 
