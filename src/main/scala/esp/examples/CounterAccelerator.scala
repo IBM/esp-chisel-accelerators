@@ -54,7 +54,7 @@ class CounterAccelerator(dmaWidth: Int) extends Implementation(dmaWidth) with Co
 
   val ticks, value = Reg(UInt(config.paramMap("ticks").size.W))
   val enabled = RegInit(false.B)
-  val fire = value === ticks
+  val fire = enabled && (value === ticks)
 
   when (io.enable) {
     enabled := true.B
@@ -70,5 +70,5 @@ class CounterAccelerator(dmaWidth: Int) extends Implementation(dmaWidth) with Co
     enabled := false.B
   }
 
-  io.done := enabled & fire
+  io.done := fire
 }
