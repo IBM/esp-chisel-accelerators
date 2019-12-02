@@ -55,7 +55,7 @@ class CounterAcceleratorSpec extends ChiselFlatSpec {
 
   def doneInNCycles(cycles: Int): Unit = {
     it should s"assert done after $cycles cycles" in {
-      Driver(() => new CounterAccelerator(32), "firrtl") {
+      Driver(() => new CounterAccelerator(32), "treadle") {
         dut => new CounterAcceleratorTester(dut, cycles)
       } should be (true)
     }
