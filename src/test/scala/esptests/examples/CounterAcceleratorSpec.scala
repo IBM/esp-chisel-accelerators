@@ -16,8 +16,6 @@ package esptests.examples
 
 import chisel3._
 import chisel3.tester._
-import chisel3.tester.experimental.TestOptionBuilder._
-import chisel3.tester.internal.WriteVcdAnnotation
 
 import org.scalatest._
 
@@ -29,33 +27,32 @@ class CounterAcceleratorSpec extends FlatSpec with ChiselScalatestTester with Ma
 
   Seq(8, 64, 512).foreach{ cycles =>
     it should s"assert done after $cycles cycles" in {
-      test(new CounterAccelerator(32))
-        .withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
-          dut.io.enable.poke(false.B)
-          dut.io.dma.readControl.ready.poke(false.B)
-          dut.io.dma.writeControl.ready.poke(false.B)
-          dut.io.dma.readChannel.valid.poke(false.B)
-          dut.io.dma.writeChannel.ready.poke(false.B)
+      test(new CounterAccelerator(32)) { dut =>
+        dut.io.enable.poke(false.B)
+        dut.io.dma.readControl.ready.poke(false.B)
+        dut.io.dma.writeControl.ready.poke(false.B)
+        dut.io.dma.readChannel.valid.poke(false.B)
+        dut.io.dma.writeChannel.ready.poke(false.B)
 
-          dut.clock.step(1)
+        dut.clock.step(1)
 
-          dut.io.config.get("ticks").poke(cycles.U)
-          dut.io.enable.poke(true.B)
+        dut.io.config.get("ticks").poke(cycles.U)
+        dut.io.enable.poke(true.B)
 
-          dut.clock.step(1)
-          dut.io.enable.poke(false.B)
+        dut.clock.step(1)
+        dut.io.enable.poke(false.B)
 
-          for (i <- 0 to cycles - 2) {
-            dut.clock.step(1)
-            dut.io.done.expect(false.B)
-          }
-
-          dut.clock.step(1)
-          dut.io.done.expect(true.B)
-
+        for (i <- 0 to cycles - 2) {
           dut.clock.step(1)
           dut.io.done.expect(false.B)
         }
+
+        dut.clock.step(1)
+        dut.io.done.expect(true.B)
+
+        dut.clock.step(1)
+        dut.io.done.expect(false.B)
+      }
     }
   }
 
