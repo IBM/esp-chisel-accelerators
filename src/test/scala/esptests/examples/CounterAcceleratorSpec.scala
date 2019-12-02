@@ -14,53 +14,49 @@
 
 package esptests.examples
 
-import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import chisel3._
+import chisel3.tester._
+import chisel3.tester.experimental.TestOptionBuilder._
+import chisel3.tester.internal.WriteVcdAnnotation
+
+import org.scalatest._
 
 import esp.examples.CounterAccelerator
 
-/** A test that the [[CounterAccelerator]] asserts it's done when it should
-  * @param dut a [[CounterAccelerator]]
-  */
-class CounterAcceleratorTester(dut: CounterAccelerator, ticks: Int) extends PeekPokeTester(dut) {
-  def reset(): Unit = Seq(dut.io.enable,
-                          dut.io.dma.readControl.ready,
-                          dut.io.dma.writeControl.ready,
-                          dut.io.dma.readChannel.ready,
-                          dut.io.dma.writeChannel.valid)
-    .map(p => poke(p, 0))
-
-  reset()
-
-  step(1)
-  poke(dut.io.config.get("ticks").asUInt, ticks)
-  poke(dut.io.enable, 1)
-
-  step(1)
-  poke(dut.io.enable, 0)
-
-  for (i <- 0 to ticks - 2) {
-    step(1)
-    expect(dut.io.done, 0)
-  }
-  step(1)
-  expect(dut.io.done, 1)
-
-  step(1)
-  expect(dut.io.done, 0)
-}
-
-class CounterAcceleratorSpec extends ChiselFlatSpec {
+class CounterAcceleratorSpec extends FlatSpec with ChiselScalatestTester with Matchers {
 
   behavior of "CounterAccelerator"
 
-  def doneInNCycles(cycles: Int): Unit = {
+  Seq(8, 64, 512).foreach{ cycles =>
     it should s"assert done after $cycles cycles" in {
-      Driver(() => new CounterAccelerator(32), "treadle") {
-        dut => new CounterAcceleratorTester(dut, cycles)
-      } should be (true)
+      test(new CounterAccelerator(32))
+        .withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+          dut.io.enable.poke(false.B)
+          dut.io.dma.readControl.ready.poke(false.B)
+          dut.io.dma.writeControl.ready.poke(false.B)
+          dut.io.dma.readChannel.valid.poke(false.B)
+          dut.io.dma.writeChannel.ready.poke(false.B)
+
+          dut.clock.step(1)
+
+          dut.io.config.get("ticks").poke(cycles.U)
+          dut.io.enable.poke(true.B)
+
+          dut.clock.step(1)
+          dut.io.enable.poke(false.B)
+
+          for (i <- 0 to cycles - 2) {
+            dut.clock.step(1)
+            dut.io.done.expect(false.B)
+          }
+
+          dut.clock.step(1)
+          dut.io.done.expect(true.B)
+
+          dut.clock.step(1)
+          dut.io.done.expect(false.B)
+        }
     }
   }
-
-  Seq(8, 64, 512).foreach(doneInNCycles(_))
 
 }

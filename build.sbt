@@ -39,10 +39,11 @@ resolvers ++= Seq(
 
 // Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
 val defaultVersions = Map(
-  "chisel-iotesters" -> "1.3.+"
+  "chisel-iotesters" -> "1.3.+",
+  "chisel-testers2" -> "0.1.+"
   )
 
-libraryDependencies ++= (Seq("chisel-iotesters").map {
+libraryDependencies ++= (Seq("chisel-iotesters", "chisel-testers2").map {
   dep: String => "edu.berkeley.cs" %% dep % sys.props.getOrElse(dep + "Version", defaultVersions(dep)) })
 
 libraryDependencies += "com.thoughtworks.xstream" % "xstream" % "1.4.11.1"
