@@ -15,7 +15,6 @@
 package esp.examples
 
 import chisel3._
-import chisel3.experimental.{RawModule, withClockAndReset}
 
 import esp.{Config, AcceleratorWrapperIO, AcceleratorIO, Implementation, Parameter, Specification}
 
