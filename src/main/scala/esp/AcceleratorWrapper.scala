@@ -15,7 +15,6 @@
 package esp
 
 import chisel3._
-import chisel3.experimental.{RawModule, withClockAndReset}
 
 trait AcceleratorWrapperIO { this: RawModule =>
   val dmaWidth: Int
