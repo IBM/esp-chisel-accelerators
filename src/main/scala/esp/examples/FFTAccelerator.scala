@@ -47,7 +47,9 @@ trait FFTSpecification extends Specification {
 
   override lazy val config: Config = Config(
     name = "FFTAccelerator",
-    description = s"${params.numPoints}-point FFT",
+    description = params.protoIQ.real match {
+      case a: FixedPoint => s"${params.numPoints}-point ${a.getWidth}.${a.binaryPoint.get} FFT"
+    },
     memoryFootprintMiB = 0,
     deviceId = 0xD,
     param = Array(
@@ -63,15 +65,15 @@ trait FFTSpecification extends Specification {
       ),
       Parameter(
         name = "startAddr",
-        description = Some("The memory address to start the FFT")
+        description = Some("The memory address to start the FFT (output written here)")
       ),
       Parameter(
         name = "count",
-        description = Some("The number of 1D FFTs to do")
+        description = Some("The number of 1D FFTs to do (only 1 supported)")
       ),
       Parameter(
         name = "stride",
-        description = Some("The stride between each FFT")
+        description = Some("The stride between each FFT (must be point size)")
       )
     )
   )
