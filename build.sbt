@@ -24,30 +24,30 @@ def javacOptionsVersion(scalaVersion: String): Seq[String] = {
   }
 }
 
-name := "esp-chisel-accelerators"
+lazy val ofdm = (project in file("ofdm"))
 
-version := "1.0.0"
+// Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
+val defaultVersions = Map(
+  "chisel-iotesters" -> "1.3.+",
+  "chisel-testers2" -> "0.1.+",
+  "dsptools" -> "1.2.+"
+  )
 
-scalaVersion := "2.12.8"
-
-crossScalaVersions := Seq("2.11.12", "2.12.8")
+lazy val espChisel = (project in file("."))
+  .settings(
+    name := "esp-chisel-accelerators",
+    version := "1.0.0",
+    scalaVersion := "2.12.10",
+    crossScalaVersions := Seq("2.11.12", "2.12.10"),
+    libraryDependencies ++= Seq("chisel-iotesters", "chisel-testers2", "dsptools")
+      .map { dep: String => "edu.berkeley.cs" %% dep % sys.props.getOrElse(dep + "Version", defaultVersions(dep)) },
+    libraryDependencies += "com.thoughtworks.xstream" % "xstream" % "1.4.11.1",
+    scalacOptions ++= scalacOptionsVersion(scalaVersion.value) ++
+      Seq("-unchecked", "-deprecation", "-Ywarn-unused-import"),
+    javacOptions ++= javacOptionsVersion(scalaVersion.value))
+  .dependsOn(ofdm)
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),
   Resolver.sonatypeRepo("releases")
 )
-
-// Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
-val defaultVersions = Map(
-  "chisel-iotesters" -> "1.3.+",
-  "chisel-testers2" -> "0.1.+"
-  )
-
-libraryDependencies ++= (Seq("chisel-iotesters", "chisel-testers2").map {
-  dep: String => "edu.berkeley.cs" %% dep % sys.props.getOrElse(dep + "Version", defaultVersions(dep)) })
-
-libraryDependencies += "com.thoughtworks.xstream" % "xstream" % "1.4.11.1"
-
-scalacOptions ++= scalacOptionsVersion(scalaVersion.value)
-
-javacOptions ++= javacOptionsVersion(scalaVersion.value)
