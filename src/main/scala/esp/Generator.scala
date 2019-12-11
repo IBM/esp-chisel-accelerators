@@ -16,18 +16,20 @@ package esp
 
 import chisel3.Driver
 
-import esp.examples.CounterAccelerator
+import esp.examples.{CounterAccelerator, DefaultFFTAccelerator}
 
 object Generator {
 
   def main(args: Array[String]): Unit = {
     val examples: Seq[(String, String, () => AcceleratorWrapper)] =
-      Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)) )
-        .flatMap( a => Seq(32, 64, 128).map(b => (a._1, s"${a._2}_dma$b", () => new AcceleratorWrapper(b, a._3))) )
+      Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)),
+           ("FFTAccelerator", "Default", (a: Int) => new DefaultFFTAccelerator(a)) )
+        .flatMap( a => Seq(32).map(b => (a._1, s"${a._2}_dma$b", () => new AcceleratorWrapper(b, a._3))) )
 
     examples.map { case (name, impl, gen) =>
       val argsx = args ++ Array("--target-dir", s"build/$name/${name}_$impl",
-                                "--custom-transforms", "esp.transforms.EmitXML")
+                                "--custom-transforms", "esp.transforms.EmitXML",
+                                "--log-level", "info")
       Driver.execute(argsx, gen)
     }
 
