@@ -188,6 +188,9 @@ class FFTAcceleratorSpec extends FlatSpec with ChiselScalatestTester with Matche
             }
           }
 
+          dut.io.done.expect(true.B)
+          dut.io.debug.expect(0.U)
+
         }
     }
   }
