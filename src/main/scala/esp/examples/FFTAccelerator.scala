@@ -136,7 +136,7 @@ class FFTAccelerator[A <: Data : Real : BinaryRepresentation](dmaWidth: Int, val
   val debug = RegInit(Errors.None)
 
   io.debug := debug.asUInt
-  io.done := true.B
+  io.done := state === S.Done
 
   fft.in.bits.real := DontCare
   fft.in.bits.imag := DontCare
