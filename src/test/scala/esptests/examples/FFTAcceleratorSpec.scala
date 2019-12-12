@@ -152,7 +152,8 @@ class FFTAcceleratorSpec extends FlatSpec with ChiselScalatestTester with Matche
 
           dut.io.enable.poke(false.B)
 
-          dut.io.dma.readControl.expectDequeue((new DmaControl).Lit(_.index -> 0.U, _.length -> numPoints.U, _.size -> DmaSize.word))
+          dut.io.dma.readControl
+            .expectDequeue((new DmaControl).Lit(_.index -> 0.U, _.length -> (numPoints * 2).U, _.size -> DmaSize.word))
 
           {
             val inputx = input
@@ -164,7 +165,8 @@ class FFTAcceleratorSpec extends FlatSpec with ChiselScalatestTester with Matche
             dut.io.dma.readChannel.enqueueSeq(inputx)
           }
 
-          dut.io.dma.writeControl.expectDequeue((new DmaControl).Lit(_.index -> 0.U, _.length -> numPoints.U, _.size -> DmaSize.word))
+          dut.io.dma.writeControl
+            .expectDequeue((new DmaControl).Lit(_.index -> 0.U, _.length -> (numPoints * 2).U, _.size -> DmaSize.word))
 
           {
             val outputx = output

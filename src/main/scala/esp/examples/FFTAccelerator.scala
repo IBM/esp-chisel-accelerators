@@ -176,7 +176,7 @@ class FFTAccelerator[A <: Data : Real : BinaryRepresentation](dmaWidth: Int, val
   when (state === S.DMALoad) {
     io.dma.readControl.valid := ~dmaRead.valid
     io.dma.readControl.bits.index := addr
-    io.dma.readControl.bits.length := stride * count
+    io.dma.readControl.bits.length := stride * count * 2
 
     when (io.dma.readControl.fire) {
       dmaRead.valid := true.B
@@ -200,7 +200,7 @@ class FFTAccelerator[A <: Data : Real : BinaryRepresentation](dmaWidth: Int, val
   when (state === S.DMAStore) {
     io.dma.writeControl.valid := ~dmaWrite.valid
     io.dma.writeControl.bits.index := addr
-    io.dma.writeControl.bits.length := stride * count
+    io.dma.writeControl.bits.length := stride * count * 2
 
     when (io.dma.writeControl.fire) {
       dmaWrite.valid := true.B
