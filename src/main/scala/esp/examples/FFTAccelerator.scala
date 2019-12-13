@@ -50,7 +50,7 @@ trait FFTSpecification extends Specification {
     description = params.protoIQ.real match {
       case a: FixedPoint => s"${params.numPoints}-point ${a.getWidth}.${a.binaryPoint.get} FFT"
     },
-    memoryFootprintMiB = 0,
+    memoryFootprintMiB = 1,
     deviceId = 0xD,
     param = Array(
       Parameter(
