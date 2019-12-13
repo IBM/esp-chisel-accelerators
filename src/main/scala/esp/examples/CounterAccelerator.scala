@@ -50,7 +50,7 @@ trait CounterSpecification extends Specification {
 
 class CounterAccelerator(dmaWidth: Int) extends Implementation(dmaWidth) with CounterSpecification {
 
-  override val implementationName: String = "Default_dma" + dmaWidth
+  override val implementationName: String = "Default"
 
   val ticks, value = Reg(UInt(config.paramMap("ticks").size.W))
   val enabled = RegInit(false.B)

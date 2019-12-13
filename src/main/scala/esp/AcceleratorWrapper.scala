@@ -68,7 +68,7 @@ trait AcceleratorWrapperIO { this: RawModule =>
   */
 final class AcceleratorWrapper(val dmaWidth: Int, gen: Int => Implementation) extends RawModule with AcceleratorWrapperIO {
 
-  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}"
+  override lazy val desiredName = s"${acc.config.name}_${acc.implementationName}_dma$dmaWidth"
   val acc = withClockAndReset(clk, ~rst)(Module(gen(dmaWidth)))
 
   val conf_info = acc.io.config.map(a => IO(Input(a.cloneType)))

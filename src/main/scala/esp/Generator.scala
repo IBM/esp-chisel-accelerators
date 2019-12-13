@@ -23,7 +23,7 @@ object Generator {
   def main(args: Array[String]): Unit = {
     val examples: Seq[(String, String, () => AcceleratorWrapper)] =
       Seq( ("CounterAccelerator", "Default", (a: Int) => new CounterAccelerator(a)),
-           ("FFTAccelerator", "Default", (a: Int) => new DefaultFFTAccelerator(a)) )
+           ("FFTAccelerator", DefaultFFTAccelerator.architecture, (a: Int) => new DefaultFFTAccelerator(a)) )
         .flatMap( a => Seq(32).map(b => (a._1, s"${a._2}_dma$b", () => new AcceleratorWrapper(b, a._3))) )
 
     examples.map { case (name, impl, gen) =>

@@ -75,7 +75,7 @@ class AcceleratorWrapperSpec extends FlatSpec with Matchers {
                    () => new AcceleratorWrapper(32, (a: Int) => new BarImplementation(a)))
 
     val expectedIO = collectVerilogIO(Source.fromFile("src/main/resources/esp_acc_iface.v").getLines.toSeq)
-    val generatedIO = collectVerilogIO(Source.fromFile(s"$targetDir/foo_bar.v").getLines.toSeq).toSet
+    val generatedIO = collectVerilogIO(Source.fromFile(s"$targetDir/foo_bar_dma32.v").getLines.toSeq).toSet
 
     for (g <- expectedIO) {
       info(s"Contains: ${g.serialize}")
