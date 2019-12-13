@@ -16,6 +16,8 @@ env:
 jobs:
   include:
     - stage: test
+      name: "test"
       script: sbt $SBT_ARGS test
     -
+      name: "run"
       script: sbt $SBT_ARGS run
