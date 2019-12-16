@@ -24,7 +24,7 @@ import esp.{Config, Implementation, Parameter, Specification}
 
 import java.io.File
 
-import ofdm.fft.{DISOIO, FFT, FFTParams, PacketSerializer, PacketSerDesParams}
+import ofdm.fft.{DirectFFTType, DISOIO, FFT, FFTParams, PacketSerializer, PacketSerDesParams, SDFFFTType}
 
 import sys.process.Process
 
@@ -111,7 +111,17 @@ class FFTAccelerator[A <: Data : Real : BinaryRepresentation](dmaWidth: Int, val
     debug := Errors.Unimplemented
   }
 
-  override val implementationName: String = "Default_fft" + dmaWidth
+  override val implementationName: String = {
+    val tpe = params.fftType match {
+      case DirectFFTType => "Direct"
+      case SDFFFTType => "SDF"
+    }
+    val fixedPoint = params.protoIQ.real match {
+      case a: FixedPoint => s"${a.getWidth}p${a.binaryPoint.get}"
+    }
+
+    s"${params.numPoints}PointFP$fixedPoint$tpe"
+  }
 
   /** The underlying FFT hardware */
   val fft = Module(
@@ -223,3 +233,7 @@ class FFTAccelerator[A <: Data : Real : BinaryRepresentation](dmaWidth: Int, val
 
 /** A 32-point 64.40 fixed point FFT accelerator */
 class DefaultFFTAccelerator(dmaWidth: Int) extends FFTAccelerator(dmaWidth, FFTParams.fixed(32, 20, 32, 32))
+
+private[esp] object DefaultFFTAccelerator {
+  val architecture = "32PointFP32p20SDF"
+}
